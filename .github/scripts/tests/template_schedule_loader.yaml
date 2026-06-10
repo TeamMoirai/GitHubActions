@@ -1,0 +1,9 @@
+# TeamMoiraiActions benchmark-loader2matrix --benchmark-name-prefix foo --config-path ".github/scripts/tests/template_schedule_loader.yaml"
+type: loader # indicate this is loader config
+branch-configs:
+  - suffix: ""
+    branch: main
+    config: ./.github/scripts/tests/template_benchmark_config.yaml
+  - suffix: "-1"
+    branch: feature/schedule
+    config: ./.github/scripts/tests/template_benchmark_config.yaml

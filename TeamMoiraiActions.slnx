@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/.props/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="src/TeamMoiraiActions.Tests/TeamMoiraiActions.Tests.csproj" />
+  <Project Path="src/TeamMoiraiActions/TeamMoiraiActions.csproj" />
+</Solution>

@@ -1,0 +1,44 @@
+name: TOC Generator
+
+on:
+  workflow_call:
+    inputs:
+      TOC_TITLE:
+        description: TOC Title
+        default: "**Table of Contents**"
+        required: false
+        type: string
+      FOLDING:
+        description: Whether to fold.
+        required: false
+        type: boolean
+      TARGET_PATHS:
+        description: Target file path. (Comma separated, @see https://github.com/thlorenz/doctoc#adding-toc-to-individual-files)
+        default: "README*.md"
+        required: false
+        type: string
+    secrets:
+      github-token:
+        description: Secret GitHub API token used to make API requests or git authentication.
+        required: false
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "README.md"
+
+jobs:
+  toc:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: technote-space/toc-generator@9e238e7974de5fcf7b17b7acc54c896160dda0a3 # v4.3.1
+        with:
+          TOC_TITLE: ${{ inputs.TOC_TITLE || '# 📖 Table of Contents' }}
+          FOLDING: ${{ inputs.FOLDING || false }}
+          GITHUB_TOKEN: ${{ secrets.github-token || secrets.GITHUB_TOKEN }}
+          TARGET_PATHS: ${{ inputs.TARGET_PATHS || 'README*.md' }}
+          COMMIT_NAME: github-actions[bot]
+          COMMIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com

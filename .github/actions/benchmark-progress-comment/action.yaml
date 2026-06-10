@@ -1,0 +1,31 @@
+name: Benchmark progress comment
+description: Comment benchmark progtress to the PR or Issue
+inputs:
+  comment:
+    description: Comment to be posted
+    required: true
+  state:
+    description: State of the benchmark (running|failed|success)
+    required: true
+  title:
+    description: Title of the comment
+    required: true
+  update:
+    description: Update comment or not (true|false)
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Comment benchamrk pgoress
+      shell: bash
+      run: |
+        comment=$(cat <<'EOF'
+        ${{ inputs.comment }}
+        EOF)
+        body=$(printf '### ${{ inputs.state == 'running' && ':zap:' || (inputs.state == 'failed' && ':x:' || (inputs.state == 'cancelled' && ':warning:' || ':white_check_mark:')) }} ${{ inputs.title }}
+        See the detail on [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+        %s' "$comment")
+        gh issue comment ${{ github.event.issue.number }} ${{ inputs.update == 'true' && '--edit-last' || '' }} --body "$body"
+      if: ${{ github.event.issue.number }}

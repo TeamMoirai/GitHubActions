@@ -1,0 +1,100 @@
+name: (R) Benchmark Cleanup
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Every hour
+  workflow_call:
+    inputs:
+      state:
+        description: "state: Deletion target benchmark state. Despite of state, expired benchmark environments are always deleted."
+        required: false
+        default: "Failed" # default should be 'Failed' for workflow_call, safe guard.
+        type: string
+      try-redeploy:
+        description: "try-redeploy: Try Redeploy before deletion only if scheduled"
+        required: false
+        default: false
+        type: boolean
+      no-delete:
+        description: "no-delete: Skip delete, you can just update environment with try-redeploy"
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      state:
+        description: "state: Deletion target benchmark state. Despite of state, expired benchmark environments are always deleted."
+        required: false
+        default: "All"
+        type: choice
+        options:
+          - Failed
+          - Succeeded
+          - All
+      try-redeploy:
+        description: "try-redeploy: Try Redeploy before deletion only if scheduled"
+        required: false
+        default: false
+        type: boolean
+      no-delete:
+        description: "no-delete: Skip delete, you can just update environment with try-redeploy"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  GH_REPO: ${{ github.repository }} # gh cli handling
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # gh cli handling
+
+jobs:
+  cleanup:
+    name: "Cleanup ${{matrix.state}} (redeploy: ${{ matrix.try-redeploy}})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - benchmark-devcenter: ade-devcenter-jp # Benchmark devcenter name
+            benchmark-project: ade-project-jp # Benchmark project name
+            state: ${{ inputs.state || 'Failed' }} # Failed benchmark environment is deletion target
+            try-redeploy: ${{ github.event_name == 'schedule' || inputs.try-redeploy }} # Try Redeploy before deletion only if scheduled
+            no-delete: ${{ inputs.no-delete || 'false' }} # Skip delete, you can just update environment with try-redeploy
+    environment:
+      name: benchmark
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check Azure secrets availability
+        id: check-secrets
+        run: |
+          if [ -n "${{ secrets.AZURE_OIDC_CLIENTID }}" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        if: steps.check-secrets.outputs.available == 'true'
+        with:
+          repository: "TeamMoirai/GitHubActions"
+          path: Actions
+          persist-credentials: false
+      - name: List checkout repos
+        if: steps.check-secrets.outputs.available == 'true'
+        run: ls -l
+      - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        if: steps.check-secrets.outputs.available == 'true'
+        with:
+          client-id: ${{ secrets.AZURE_OIDC_CLIENTID }}
+          tenant-id: ${{ secrets.AZURE_OIDC_TENANTID }}
+          subscription-id: ${{ secrets.AZURE_OIDC_SUBSCRIPTIONID }}
+      - name: Add Azure CLI devcenter extension
+        if: steps.check-secrets.outputs.available == 'true'
+        run: az extension add --name devcenter --upgrade
+      - name: Cleanup benchmark environment
+        if: steps.check-secrets.outputs.available == 'true'
+        run: bash ./scripts/benchmark_environment_clean.sh --dev-center-name '${{ matrix.benchmark-devcenter }}' --project-name '${{ matrix.benchmark-project }}' --state ${{ matrix.state }} --dry-run false --try-redeploy ${{ matrix.try-redeploy }} --no-delete "${{ matrix.no-delete }}"
+        working-directory: ./Actions/.github

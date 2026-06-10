@@ -1,0 +1,20 @@
+name: (R) Actions timeline
+
+on:
+  workflow_call:
+    secrets:
+      github-token:
+        description: "GitHub Token"
+        required: true
+
+jobs:
+  actions-timeline:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - uses: Kesin11/actions-timeline@44c9c178ffb2fb1d9859614a3ffa79ccfb77565e # v3.1.0
+        with:
+          github-token: ${{ secrets.github-token }}
+          show-waiting-runner: true

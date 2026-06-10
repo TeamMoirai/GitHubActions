@@ -1,0 +1,146 @@
+name: (R) Update package.json
+
+on:
+  workflow_call:
+    inputs:
+      file-path:
+        description: "package.json path to update. You can input multiline paths. Supported files are `package.json`, `plugin.cfg` and `Directory.Build.props`"
+        required: true
+        type: string
+      ref:
+        description: "checkout ref"
+        required: false
+        type: string
+        default: ${{ github.ref }}
+      require-validation:
+        description: "true require validation must pass, false to keep going even validation failed."
+        required: false
+        type: boolean
+        default: true
+      tag:
+        description: "git tag you want create. (sample 1.0.0)"
+        required: true
+        type: string
+      use-bot-token:
+        description: "Use bot token for git authentication. true: use bot token, false: use GITHUB_TOKEN."
+        required: false
+        type: boolean
+        default: false
+      dry-run:
+        description: "true: commit/push to 'test-release/{tag}' branch, false: commit/push to current branch."
+        required: true
+        type: boolean
+      dotnet-run-path:
+        description: 'dotnet run path, specified project to run, like src/Foo/Bar.csproj. Arguments are always "--version {tag}"'
+        required: false
+        type: string
+        default: ""
+    outputs:
+      branch-name:
+        description: Git branch name created.
+        value: ${{ jobs.update-packagejson.outputs.branch-name }}
+      is-branch-created:
+        description: Indicate is Git branch created or not.
+        value: ${{ jobs.update-packagejson.outputs.is-branch-created }}
+      sha:
+        description: "Git commit sha after package.json has changed."
+        value: ${{ jobs.update-packagejson.outputs.sha }}
+
+jobs:
+  update-packagejson:
+    permissions:
+      contents: write # because of git push selector may use auto-token
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      branch-name: ${{ steps.update.outputs.branch-name }}
+      is-branch-created: ${{ steps.update.outputs.is-branch-created }}
+      sha: ${{ steps.update.outputs.sha }}
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        if: ${{ inputs.use-bot-token }}
+        id: app-token
+        with:
+          app-id: ${{ secrets.ACTIONBOT_APPID }}
+          private-key: ${{ secrets.ACTIONBOT_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: Set TeamMoirai/GitHubActions binary path
+        id: actions-caller
+        run: |
+          branch=main
+          if [[ ${{ github.repository }} == "TeamMoirai/GitHubActions" ]]; then
+            echo path="dotnet run --project ./src/TeamMoiraiActions/TeamMoiraiActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+            exit
+          elif [[ -f "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions"
+          else
+            echo "ERROR: TeamMoiraiActions binary not found."
+            echo "::group::Debug _actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/"
+            echo "::endgroup::"
+            echo "::group::Debug _actions/TeamMoirai/GitHubActions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/"
+            echo "::endgroup::"
+            exit 1
+          fi
+
+      # validate
+      - name: Validate and normalize tag
+        id: validate
+        run: |
+          extra_args=""
+          if [[ "${REQUIRE_VALIDATION}" == "true" ]]; then
+            extra_args="--require-validation"
+          fi
+          ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${TAG}" ${extra_args}
+        env:
+          TAG: ${{ inputs.tag }}
+          REQUIRE_VALIDATION: ${{ inputs.require-validation }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # dotnet run external
+      - name: Execute external dotnet run with --version ${{ steps.validate.outputs.normalized-tag }}
+        run: |
+          while read -r file_path; do
+            if [[ "$file_path" == "" ]]; then continue; fi
+            echo "Start $file_path"
+            echo "::group::Execute"
+              dotnet run --project "$file_path" --no-launch-profile -- --version "${{ steps.validate.outputs.normalized-tag }}"
+            echo "::endgroup::"
+          done <<< "${DOTNET_RUN_PATH}"
+        env:
+          DOTNET_RUN_PATH: ${{ inputs.dotnet-run-path }}
+        if: ${{ inputs.dotnet-run-path != '' }}
+
+      # update files, git configure, git commit.
+      # ------------------------------------------
+      # package.json
+      # "version": 1.2.3 -> "version": 2.0.0
+      - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
+        id: update
+        run: |
+          dry_run_flag=""
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            dry_run_flag="--dry-run"
+          fi
+          ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${FILE_PATH}" ${dry_run_flag}
+        env:
+          FILE_PATH: ${{ inputs.file-path }}
+          DRY_RUN: ${{ inputs.dry-run }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ inputs.use-bot-token && steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+      - name: Push changes
+        if: ${{ steps.update.outputs.commited == '1' }}
+        run: git push origin "${BRANCH_NAME}"
+        env:
+          BRANCH_NAME: ${{ steps.update.outputs.branch-name || inputs.ref }}

@@ -1,0 +1,58 @@
+name: Test Actions
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  dotnet:
+    permissions:
+      contents: write # dotnet test runs gh cli
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: dotnet build
+        run: dotnet build -c Release
+      - name: dotnet test
+        run: dotnet test -c Release --no-build --logger:"console;verbosity=normal"
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-artifact:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - run: mkdir -p path/to/artifact
+      - run: echo hello > path/to/artifact/world.txt
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+        with:
+          name: my-artifact
+          path: path/to/artifact/world.txt
+
+  download-artifact:
+    needs: [upload-artifact]
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@main
+        with:
+          name: my-artifact
+      - name: Display structure of downloaded files
+        run: ls -R

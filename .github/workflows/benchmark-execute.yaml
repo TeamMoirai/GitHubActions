@@ -1,0 +1,324 @@
+name: (R) Benchmark Execute
+
+on:
+  workflow_call:
+    inputs:
+      # required
+      benchmark-name:
+        description: "Name of the benchamrk environment."
+        required: true
+        type: string
+      benchmark-config-path:
+        description: "Benchmark config yaml file path"
+        required: true
+        type: string
+      branch:
+        description: "Branch name to checkout"
+        required: true
+        type: string
+      # optional
+      benchmark-catalog:
+        description: "Benchmark catalog name"
+        required: false
+        type: string
+        default: "pulumi"
+      benchmark-definition-name:
+        description: "Benchmark catalog's definition name"
+        required: false
+        type: string
+        default: "Benchmark"
+      benchmark-devcenter:
+        description: "Benchmark devcenter name"
+        required: false
+        type: string
+        default: "ade-devcenter-jp"
+      benchmark-environment:
+        description: "Benchmark environment name"
+        required: false
+        type: string
+        default: "benchmark"
+      benchmark-project:
+        description: "Benchmark project name"
+        required: false
+        type: string
+        default: "ade-project-jp"
+
+jobs:
+  config2matrix:
+    name: "config2matrix: ${{ inputs.benchmark-name}}@${{ inputs.branch}}"
+    outputs:
+      matrix: ${{ steps.config2matrix.outputs.matrix }}
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ inputs.branch }}
+          path: Repo
+          persist-credentials: false
+      - name: Set TeamMoirai/GitHubActions binary path
+        id: actions-caller
+        run: |
+          branch=main
+          if [[ ${{ github.repository }} == "TeamMoirai/GitHubActions" ]]; then
+            echo path="dotnet run --project ./src/TeamMoiraiActions/TeamMoiraiActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+            exit
+          elif [[ -f "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions"
+          else
+            echo "ERROR: TeamMoiraiActions binary not found."
+            echo "::group::Debug _actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/"
+            echo "::endgroup::"
+            echo "::group::Debug _actions/TeamMoirai/GitHubActions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/"
+            echo "::endgroup::"
+            exit 1
+          fi
+      - name: Generate Matrix json from config
+        id: config2matrix
+        run: ${{ steps.actions-caller.outputs.path }} benchmark-config2matrix --config-path "./Repo/${BENCHMARK_CONFIG_PATH}"
+        env:
+          BENCHMARK_CONFIG_PATH: ${{ inputs.benchmark-config-path }}
+      - name: Comment (Running - Config loaded)
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: "Benchmark config successfully loaded and start matrix. :clock1:"
+          state: "running"
+          title: "Benchmark config loaded"
+          update: "true"
+
+  benchmark:
+    needs: [config2matrix]
+    name: "benchmark: ${{ inputs.benchmark-name}}@${{ inputs.branch}} ${{ matrix.benchmark-client-run-script-args }}"
+    strategy:
+      max-parallel: 1 # do not run concurrently
+      fail-fast: true # stop if fail
+      matrix: ${{ fromJson(needs.config2matrix.outputs.matrix) }}
+    env:
+      BENCHMARK_SERVER_NAME: "${{ inputs.benchmark-name }}-bench-server-vm"
+      BENCHMARK_CLIENT_NAME: "${{ inputs.benchmark-name }}-bench-client-vm"
+      BENCHMARK_RESOURCE_GROUP: "${{ inputs.benchmark-project }}-${{ inputs.benchmark-name }}"
+    environment:
+      name: benchmark
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      id-token: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check Azure secrets availability
+        id: check-secrets
+        run: |
+          if [ -n "${{ secrets.AZURE_OIDC_CLIENTID }}" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Dump matrix
+        if: steps.check-secrets.outputs.available == 'true'
+        run: echo "${{ toJson(matrix) }}"
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        if: steps.check-secrets.outputs.available == 'true'
+        with:
+          ref: ${{ inputs.branch }}
+          path: Repo
+          persist-credentials: false
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        if: steps.check-secrets.outputs.available == 'true'
+        with:
+          repository: "TeamMoirai/GitHubActions"
+          path: Actions
+          persist-credentials: false
+      - name: List checkout repos
+        if: steps.check-secrets.outputs.available == 'true'
+        run: ls -l
+      - name: Output SSH Key
+        if: steps.check-secrets.outputs.available == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.BENCHMARK_VM_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        if: steps.check-secrets.outputs.available == 'true'
+        with:
+          client-id: ${{ secrets.AZURE_OIDC_CLIENTID }}
+          tenant-id: ${{ secrets.AZURE_OIDC_TENANTID }}
+          subscription-id: ${{ secrets.AZURE_OIDC_SUBSCRIPTIONID }}
+      - name: Add Azure CLI devcenter extension
+        if: steps.check-secrets.outputs.available == 'true'
+        run: az extension add --name devcenter --upgrade
+      - name: Create benchmark environment
+        if: steps.check-secrets.outputs.available == 'true'
+        id: create-benchmark
+        run: bash ./scripts/benchmark_environment_create.sh --catalog-name "${BENCHMARK_CATALOG}" --dev-center-name "${BENCHMARK_DEVCENTER}" --environment-definition-name "${BENCHMARK_DEFINITION_NAME}" --environment-type "${BENCHMARK_ENVIRONMENT}" --location "${{ matrix.benchmark-location }}" --name "${BENCHMARK_NAME}" --project-name "${BENCHMARK_PROJECT}" --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
+        env:
+          BENCHMARK_CATALOG: ${{ inputs.benchmark-catalog }}
+          BENCHMARK_DEVCENTER: ${{ inputs.benchmark-devcenter }}
+          BENCHMARK_DEFINITION_NAME: ${{ inputs.benchmark-definition-name }}
+          BENCHMARK_ENVIRONMENT: ${{ inputs.benchmark-environment }}
+          BENCHMARK_NAME: ${{ inputs.benchmark-name }}
+          BENCHMARK_PROJECT: ${{ inputs.benchmark-project }}
+        working-directory: ./Actions/.github
+      - name: Comment (Progess - Benchmark environment)
+        if: steps.check-secrets.outputs.available == 'true'
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: "Benchmark environment creation complete, start preparing server & client. :clock3:"
+          state: "running"
+          title: "Benchmark environment created"
+          update: "true"
+      - name: Show GitHub Actions runner public IP
+        if: steps.check-secrets.outputs.available == 'true'
+        id: get-runner-ip
+        run: |
+          runnner=$(curl -s https://checkip.amazonaws.com)
+          echo "ip=$runnner" | tee -a "$GITHUB_OUTPUT"
+      - name: Update SG Rule
+        if: steps.check-secrets.outputs.available == 'true'
+        run: |
+          az network nsg rule update --resource-group "${BENCHMARK_RESOURCE_GROUP}" --nsg-name "${BENCHMARK_NAME}-vm-sg" --name "github-runner" --source-address-prefixes "${{ steps.get-runner-ip.outputs.ip }}/32" --no-wait "false"
+        env:
+          BENCHMARK_NAME: ${{ inputs.benchmark-name }}
+      - name: Confirm VM is up and connectable
+        if: steps.check-secrets.outputs.available == 'true'
+        run: |
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+            echo "::group::Connect on $ip"
+              success=false
+              for i in {1..5}; do
+                ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" "echo OK" && { success=true; break; }
+                echo "Retrying SSH connection ($i)..."
+                sleep 15
+              done
+              if [ "$success" = false ]; then
+                echo "Failed to connect to $ip after 5 attempts."
+                exit 1
+              fi
+            echo "::endgroup::"
+          done
+        working-directory: ./Actions/.github
+      - name: Setup .NET on Benchmark VM
+        if: steps.check-secrets.outputs.available == 'true'
+        run: |
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+            echo "::group::Install on $ip"
+              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --dotnet-version ${{ matrix.dotnet-version }}' < ./scripts/dotnet_install.sh
+            echo "::endgroup::"
+          done
+        working-directory: ./Actions/.github
+      - name: Setup apt tools on Benchmark VM
+        if: steps.check-secrets.outputs.available == 'true'
+        run: |
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+            echo "::group::Install on $ip"
+              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --tools "${{ matrix.apt-tools }}"' < ./scripts/apt_install.sh
+            echo "::endgroup::"
+          done
+        working-directory: ./Actions/.github
+      - name: Clone repository on VM
+        if: steps.check-secrets.outputs.available == 'true'
+        run: |
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+            echo "::group::Install on $ip"
+              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ inputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
+            echo "::endgroup::"
+          done
+        working-directory: ./Actions/.github
+      - name: Comment (Progress - Server begin)
+        if: steps.check-secrets.outputs.available == 'true'
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: "Repository successfully prepared, starting server. :clock6:"
+          state: "running"
+          title: "Benchmark begin"
+          update: "true"
+      - name: Run benchmark server on VM
+        if: steps.check-secrets.outputs.available == 'true'
+        run: |
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running' && name=='${BENCHMARK_SERVER_NAME}'].publicIps" -o tsv); do
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-run-script-path }}
+          done
+        working-directory: ./Repo/
+      - name: Comment (Progress - Benchmark begin)
+        if: steps.check-secrets.outputs.available == 'true'
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: "Server successfully started, starting benchmark. :clock9:"
+          state: "running"
+          title: "Benchmark begin"
+          update: "true"
+      - name: Run benchmark client on VM
+        if: steps.check-secrets.outputs.available == 'true'
+        run: |
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running' && name=='${BENCHMARK_CLIENT_NAME}'].publicIps" -o tsv); do
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-client-run-script-args }}' < ${{ matrix.benchmark-client-run-script-path }}
+          done
+        working-directory: ./Repo/
+        timeout-minutes: ${{ fromJson(matrix.benchmark-timeout-min || 10) }}
+        continue-on-error: true # continue next benchmark even benchmark failed for this job
+      - name: Stop benchmark server on VM
+        if: steps.check-secrets.outputs.available == 'true' && matrix.benchmark-server-stop-script-path != ''
+        run: |
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running' && name=='${BENCHMARK_SERVER_NAME}'].publicIps" -o tsv); do
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-stop-script-path }}
+          done
+        working-directory: ./Repo/
+      - name: Comment (Result - Benchmark complete)
+        if: steps.check-secrets.outputs.available == 'true'
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: |
+            Successfully complete Benchmark. :rocket:
+
+            Benchmark settings:
+            ```
+            client-args: ${{ matrix.benchmark-client-run-script-args }}
+            server-args: ${{ matrix.benchmark-server-run-script-args }}
+            ```
+
+            Benchmark environment expiration: ${{ matrix.benchmark-expire-min}}min (Until ${{ steps.create-benchmark.outputs.expiration }} UTC)
+          state: "success"
+          title: "Benchmark completed"
+          update: "true"
+      - name: Comment (Result - Benchmark failed)
+        if: steps.check-secrets.outputs.available == 'true' && failure()
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: "Benchmark failed :x:"
+          state: "failed"
+          title: "Benchmark failed"
+          update: "true"
+      - name: Comment (Result - Benchmark cancelled)
+        if: steps.check-secrets.outputs.available == 'true' && cancelled()
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: "Benchmark workflow was cancelled :octocat:"
+          state: "cancelled"
+          title: "Benchmark cancelled"
+          update: "true"
+
+  # debug-sleep:
+  #   needs: [benchmark]
+  #   environment:
+  #     name: benchmark
+  #   permissions:
+  #     contents: read
+  #     issues: write
+  #     pull-requests: write
+  #     id-token: write
+  #   runs-on: ubuntu-24.04
+  #   timeout-minutes: 30
+  #   steps:
+  #     - name: sleep a while
+  #       run: sleep 120

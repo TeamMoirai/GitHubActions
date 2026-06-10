@@ -1,0 +1,169 @@
+name: Test create-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: GitHub Tag to release. ex) 1.2.0"
+        required: true
+        default: ""
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  set-tag:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    outputs:
+      tag: ${{ steps.set-tag.outputs.tag }}
+    steps:
+      - name: Set tag
+        id: set-tag
+        run: |
+          tag=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.10.10-dev.{0}', github.run_number) }}
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  update-packagejson:
+    needs: [set-tag]
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: write
+    uses: ./.github/workflows/update-packagejson.yaml
+    with:
+      ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./Sandbox/Directory.Build.props
+      dotnet-run-path: ./Sandbox/VersionOutput/VersionOutput.csproj
+      tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: true # true: commit/push to 'test-release/{tag}' branch, false: commit/push to current branch.
+
+  build-dotnet:
+    needs: [set-tag]
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    defaults:
+      run:
+        working-directory: ./Sandbox
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-dotnet
+      - name: dotnet restore
+        run: dotnet restore
+      - name: dotnet build
+        run: dotnet build -c Release -p:Version=${{ needs.set-tag.outputs.tag }}
+      - name: dotnet pack
+        run: dotnet pack --no-build -c Release -p:Version=${{ needs.set-tag.outputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+        with:
+          name: nuget
+          path: ./Sandbox/publish
+          retention-days: 1
+
+  build-unity:
+    needs: [update-packagejson]
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - run: echo ${{ needs.update-packagejson.outputs.sha }}
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ needs.update-packagejson.outputs.sha }}
+          persist-credentials: false
+      # Store artifacts.
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+        with:
+          name: Sandbox.Unity.unitypackage
+          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
+          if-no-files-found: error
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+        with:
+          name: Sandbox.Unity.Plugin.unitypackage
+          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
+          if-no-files-found: error
+
+  # full release
+  create-release:
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity]
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: true # true = Release作成後に60秒待って削除される。
+      nuget-push: true # dry-run=true, nuget-push=true なら nuget-pushは実行されない。
+      release-upload: true
+      release-asset-path: |
+        ./nuget/*.nupkg
+        ./nuget/*.snupkg
+        ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
+        ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
+    secrets: inherit
+
+  # change release format
+  create-release2:
+    needs: [set-tag, update-packagejson, create-release]
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: true # true = Release作成後に60秒待って削除される。
+      release-format: "{0}"
+    secrets: inherit
+
+  # v prefixed version
+  create-release3:
+    needs: [set-tag, update-packagejson, create-release2]
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: v${{ needs.set-tag.outputs.tag }}
+      release-format: "{0}"
+      dry-run: true # true = Release作成後に60秒待って削除される。
+    secrets: inherit
+
+  cleanup:
+    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
+    needs: [update-packagejson]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
+    with:
+      branch: ${{ needs.update-packagejson.outputs.branch-name }}
+
+  actions-timeline:
+    needs:
+      [
+        set-tag,
+        update-packagejson,
+        build-dotnet,
+        build-unity,
+        create-release,
+        create-release2,
+        create-release3,
+      ]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/actions-timeline.yaml
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}

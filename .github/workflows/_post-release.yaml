@@ -1,0 +1,53 @@
+name: Post Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # for debug usage
+    inputs:
+      tag:
+        description: "Released tag"
+        required: true
+        default: ""
+
+jobs:
+  dump:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - name: Dump GitHub context
+        run: echo "$CONTEXT"
+        env:
+          CONTEXT: ${{ toJson(github) }}
+
+  new-version:
+    permissions:
+      actions: read
+      contents: read
+    uses: TeamMoirai/GitHubActions/.github/workflows/increment-version.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      tag: ${{ inputs.tag || github.ref_name }} # tag value will here. 1.2.1
+      type: patch
+      suffix: "-dev"
+
+  update-packagejson:
+    needs: [new-version]
+    permissions:
+      actions: read
+      contents: write
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./Sandbox/Directory.Build.props
+      tag: ${{ needs.new-version.outputs.version }}
+      dry-run: false

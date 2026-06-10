@@ -1,0 +1,93 @@
+name: Test clean-packagejson-branch
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  create-branch:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      branch-name: ${{ steps.branch.outputs.name }}
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          app-id: ${{ secrets.ACTIONBOT_APPID }}
+          private-key: ${{ secrets.ACTIONBOT_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - name: Set branch name
+        id: branch
+        run: echo "name=test-branch-${{ github.run_id }}" | tee -a "$GITHUB_OUTPUT"
+      - name: Add some file change
+        run: echo "test" > test.txt
+      - name: Create branch
+        run: |
+          git remote set-url origin "https://github-actions:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git switch -c ${{ steps.branch.outputs.name }}
+          git add .
+          git commit -m "test"
+          git push origin ${{ steps.branch.outputs.name }}
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+  cleanup:
+    needs: [create-branch]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
+    with:
+      branch: ${{ needs.create-branch.outputs.branch-name }}
+
+  cleanup2:
+    needs: [create-branch, cleanup]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
+    with:
+      branch: ${{ needs.create-branch.outputs.branch-name }}
+
+  test:
+    needs: [create-branch, cleanup, cleanup2]
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Branch list
+        run: gh api /repos/${{ github.repository }}/branches | jq
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
+      - name: Test branch deleted
+        run: |
+          echo "DEBUG: cleanup : ${{ needs.cleanup.outputs.branch-deleted }}"
+          echo "DEBUG: cleanup2: ${{ needs.cleanup2.outputs.branch-deleted }}"
+
+          echo -n "FACT: cleanup deleted branch. "
+          if [[ "${{ needs.cleanup.outputs.branch-deleted }}" == "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: cleanup2 skip delete branch. "
+          if [[ "${{ needs.cleanup2.outputs.branch-deleted }}" != "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+
+          echo -n "FACT: remote branch should not exists. "
+          if ! gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "${{ needs.create-branch.outputs.branch-name }}" >/dev/null; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+
+          echo -n "FACT: remote branch should not retrieve. "
+          if ! gh api /repos/${{ github.repository }}/branches/${{ needs.create-branch.outputs.branch-name }} >/dev/null 2>&1; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+
+  actions-timeline:
+    needs: [create-branch, cleanup, cleanup2, test]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/actions-timeline.yaml
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}

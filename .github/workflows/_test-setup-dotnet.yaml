@@ -1,0 +1,25 @@
+name: Test setup-dotnet
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-dotnet
+      - name: Test
+        run: |
+          dotnet --list-sdks | grep "6.0"
+          dotnet --list-sdks | grep "7.0"
+          dotnet --list-sdks | grep "8.0"
+          dotnet --list-sdks | grep "9.0"
+          dotnet --list-sdks | grep "10.0"

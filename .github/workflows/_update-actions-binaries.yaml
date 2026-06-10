@@ -1,0 +1,61 @@
+name: Update Actions binaries
+
+# add or update actions binaries and commit
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # for debug usage
+    inputs:
+      tag:
+        description: "Released tag"
+        required: true
+        default: ""
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ inputs.tag || github.ref_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          app-id: ${{ secrets.ACTIONBOT_APPID }}
+          private-key: ${{ secrets.ACTIONBOT_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.repository.default_branch }}
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: dotnet publish (x64)
+        run: dotnet publish ./src/TeamMoiraiActions -c Release --runtime linux-x64 -o ./actions/Linux-X64 -p:Version="${VERSION}"
+      - name: dotnet publish (arm64)
+        run: dotnet publish ./src/TeamMoiraiActions -c Release --runtime linux-arm64 -o ./actions/Linux-ARM64 -p:Version="${VERSION}"
+      - name: list files
+        run: ls -lR ./actions/
+      - name: Check update on git
+        id: check_update
+        run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
+      - name: Commit and push files (add/updated? = ${{ steps.check_update.outputs.changed == '1' }})
+        if: ${{ steps.check_update.outputs.changed == '1' }}
+        id: update
+        run: |
+          git remote set-url origin "https://github-actions:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add -A
+          git commit -m "[automate] New TeamMoiraiActions.exe committed" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          git push origin "${BRANCH_NAME}"
+          echo "commited=1" | tee -a "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH_NAME: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.repository.default_branch }}
