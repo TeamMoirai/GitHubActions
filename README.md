@@ -611,7 +611,9 @@ dotnet run --project ./src/TeamMoiraiActions/TeamMoiraiActions.csproj --no-launc
 > 此操作是针对当前 `github.event.comment.author_association` 不一致行为的变通方案。
 > `github.event.comment.author_association` 对于组织成员应该返回 `OWNER`、`MEMBER` 或 `COLLABORATOR`，但目前即使 actor 是组织成员也会返回 `CONTRIBUTOR`。
 > 这意味着 `github.event.comment.author_association` 无法用于检查 actor 是否为组织成员（即"基准测试命令允许的用户"）。
-> 此操作通过静态定义的列表检查 actor 是否被允许运行基准测试。
+> 此操作通过 `.github/benchmark-allowed-users.txt` 中定义的文件名单检查 actor 是否被允许运行基准测试。
+> 每行一个用户名，空行与 `#` 开头的注释行会被忽略，匹配不区分大小写。
+> 名单文件需先 `actions/checkout` 才能读取；文件不存在时**拒绝**放行（fail closed）并输出 warning。
 
 **使用示例**
 
@@ -627,11 +629,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      # 名单文件需要先检出仓库
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Check actor is benchmarkable
         id: is-benchmarkable
         uses: TeamMoirai/GitHubActions/.github/actions/benchmark-runnable@master
         with:
           username: ${{ github.actor }}
+          allowed-users-file: .github/benchmark-allowed-users.txt # 默认值，可省略
 
   # 运行基准测试
   benchmark:

@@ -23,12 +23,25 @@ jobs:
       - uses: ./.github/actions/benchmark-runnable
         id: result2
         with:
-          username: mayuki
+          username: Lx34r
+      - uses: ./.github/actions/benchmark-runnable
+        id: result3
+        with:
+          username: lx34r
+      - uses: ./.github/actions/benchmark-runnable
+        id: result4
+        with:
+          username: Lx34r
+          allowed-users-file: .github/does-not-exist.txt
       - name: Test
         run: |
-          echo "DEBUG: check-metas: ${{ steps.result.outputs.authorized }}"
+          echo "DEBUG: benchmark-runnable(foo) = ${{ steps.result.outputs.authorized }}"
 
           echo -n "FACT: foo is not allowed. "
           if [[ "${{ steps.result.outputs.authorized }}" != "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
-          echo -n "FACT: mayuki is allowed. "
+          echo -n "FACT: Lx34r is allowed. "
           if [[ "${{ steps.result2.outputs.authorized }}" == "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: matching is case-insensitive (lx34r). "
+          if [[ "${{ steps.result3.outputs.authorized }}" == "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: missing allowlist denies rather than grants. "
+          if [[ "${{ steps.result4.outputs.authorized }}" != "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi

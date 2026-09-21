@@ -611,7 +611,9 @@ Mainly used for benchmark CI workflow.
 > This action is workaround for current `github.event.comment.author_association` inconsistence behavior.
 > `github.event.comment.author_association` should return `OWNER`, `MEMBER` or `CORABORATOR` for organization member, however currently it returns `CONTRIBUTOR` even actor is Org member.
 > It means `github.event.comment.author_association` can't be used to check if actor is Org member == "benchmark command allowed user" or not.
-> This action checks if actor is Benchmark allowd by statically defined list, lol.
+> This action checks if actor is Benchmark allowed by the file list at `.github/benchmark-allowed-users.txt`.
+> One username per line; blank lines and lines starting with `#` are ignored, and matching is case-insensitive.
+> The list file requires `actions/checkout` first. When the file is missing the action **denies** (fail closed) and emits a warning.
 
 **sample usage**
 
@@ -627,11 +629,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      # the allowlist file requires the repository to be checked out
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Check actor is benchmarkable
         id: is-benchmarkable
         uses: TeamMoirai/GitHubActions/.github/actions/benchmark-runnable@master
         with:
           username: ${{ github.actor }}
+          allowed-users-file: .github/benchmark-allowed-users.txt # default, can be omitted
 
   # run benchmark
   benchmark:
