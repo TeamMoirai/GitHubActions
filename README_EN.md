@@ -36,6 +36,7 @@
   - [setup-dotnet](#setup-dotnet)
   - [unity-builder](#unity-builder)
   - [upload-artifact](#upload-artifact)
+- [🤝 Special Thanks](#-special-thanks)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
