@@ -4,7 +4,7 @@
 >
 
 [![actions lint](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_actions-lint.yaml/badge.svg)](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_actions-lint.yaml)
-[![Readme_CN](https://img.shields.io/badge/README-中文-red)](https://github.com/TeamMoirai/GitHubActions/blob/main/README.md)
+[![Readme_CN](https://img.shields.io/badge/README-中文-red)](https://github.com/TeamMoirai/GitHubActions/blob/master/README.md)
 
 [![Test benchmark-runnable](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_test-benchmark-runnable.yaml/badge.svg?event=pull_request)](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_test-benchmark-runnable.yaml)
 [![Test check-metas](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_test-check-metas.yaml/badge.svg?event=pull_request)](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_test-check-metas.yaml)
@@ -29,7 +29,7 @@
   - [update-packagejson](#update-packagejson)
   - [validate-tag](#validate-tag)
 - [🎬 Actions](#-actions)
-  - [check-benchmarkable](#check-benchmarkable)
+  - [benchmark-runnable](#benchmark-runnable)
   - [check-metas](#check-metas)
   - [checkout](#checkout)
   - [download-artifact](#download-artifact)
@@ -64,7 +64,7 @@ Some workflows require GitHub Secrets to be configured in the repository setting
 
 ## clean-packagejson-branch
 
-> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/clean-packagejson-branch.yaml)
+> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/clean-packagejson-branch.yaml)
 
 Delete specic github branch. Mainly used for cleanup branch created by [update-packagejson](#update-packagejson) workflow. Action has following limitation to prevent accidental deletion.
 
@@ -83,14 +83,14 @@ jobs:
   cleanup:
     permissions:
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@master
     with:
       branch: branch_name_to_delete
 ```
 
 ## create-release
 
-> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/create-release.yaml)
+> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/create-release.yaml)
 
 Create GitHub Release, upload NuGet and upload artifact to release assets. Mainly used for NuGet and Unity release workflow.
 
@@ -121,7 +121,7 @@ on:
 
 jobs:
   create-release:
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ''
       tag: ${{ inputs.tag }}
@@ -150,7 +150,7 @@ on:
 
 jobs:
   create-release:
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ''
       tag: ${{ inputs.tag }}
@@ -180,7 +180,7 @@ on:
 
 jobs:
   create-release:
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ''
       tag: ${{ inputs.tag }}
@@ -220,11 +220,11 @@ jobs:
         working-directory: ./Sandbox
     steps:
       - uses: actions/checkout@v4
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
       - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
-        uses: TeamMoirai/GitHubActions/.github/actionsupload-artifact@main
+        uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: nuget
           path: ./Sandbox/publish
@@ -232,7 +232,7 @@ jobs:
 
   create-release:
     needs: [build-dotnet]
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ''
       tag: ${{ inputs.tag }}
@@ -265,7 +265,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
@@ -284,11 +284,11 @@ jobs:
         working-directory: ./Sandbox
     steps:
       - uses: actions/checkout@v4
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
       - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
-        uses: TeamMoirai/GitHubActions/.github/actionsupload-artifact@main
+        uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: nuget
           path: ./Sandbox/publish
@@ -304,12 +304,12 @@ jobs:
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}
       # Store artifacts.
-      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: Sandbox.Unity.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
           if-no-files-found: error
-      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: Sandbox.Unity.Plugin.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
@@ -317,7 +317,7 @@ jobs:
 
   create-release:
     needs: [update-packagejson, build-dotnet, build-unity]
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ inputs.tag }}
@@ -336,7 +336,7 @@ jobs:
     needs: [update-packagejson]
     permissions:
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@master
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
@@ -344,7 +344,7 @@ jobs:
 
 ## dd-event-post
 
-> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/dd-event-post.yaml)
+> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/dd-event-post.yaml)
 
 Post Datadog event.
 
@@ -368,15 +368,15 @@ on:
 jobs:
   post:
     if: ${{ github.event.pull_request.merged == true }}
-    uses: TeamMoirai/GitHubActions/.github/workflows/dd-event-post.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/dd-event-post.yaml@master
     secrets: inherit
 ```
 
 ## increment-version
 
-> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/increment-version.yaml)
+> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/increment-version.yaml)
 
-Update specified version file with incremented version. Mainly used for [post-release workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/post-release.yaml).
+Update specified version file with incremented version. Mainly used for [post-release workflow](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/_post-release.yaml).
 
 **Sample usage**
 
@@ -394,7 +394,7 @@ jobs:
     permissions:
       actions: read
       contents: read
-    uses: TeamMoirai/GitHubActions/.github/workflows/increment-version.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/increment-version.yaml@master
     with:
       ref: ${{ github.event.repository.default_branch }}
       tag: ${{ github.ref_name }} # tag value will here. 1.2.1
@@ -406,7 +406,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       ref: ${{ github.event.repository.default_branch }}
       file-path: |
@@ -422,7 +422,7 @@ jobs:
 
 ## prevent-github-change
 
-> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/prevent-github-change.yaml)
+> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/prevent-github-change.yaml)
 
 Prevent fork users to change files triggered by. Only Organization contributors can change these files.
 
@@ -440,13 +440,13 @@ jobs:
   detect:
     permissions:
       contents: read
-    uses: TeamMoirai/GitHubActions/.github/workflows/prevent-github-change.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/prevent-github-change.yaml@master
 ```
 
 
 ## stale-issue
 
-> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/stale-issue.yaml)
+> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/stale-issue.yaml)
 
 Stale issue and PRs.
 Mainly used for Issue/PR management.
@@ -467,12 +467,12 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/stale-issue.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/stale-issue.yaml@master
 ```
 
 ## update-packagejson
 
-> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/update-packagejson.yaml)
+> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/update-packagejson.yaml)
 
 Update specified `Unity package.json` and `Godot plugin.cfg` version with tag version. Mainly used for UPM and Godot plugin release workflow.
 
@@ -491,7 +491,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
       tag: ${{ inputs.tag }}
@@ -507,7 +507,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
       # you can write multi path.
@@ -540,7 +540,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       # you can write multi path.
       file-path: |
@@ -565,54 +565,44 @@ jobs:
     needs: [update-packagejson]
     permissions:
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@master
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
 
 ## validate-tag
 
-> [See workflow](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/validate-tag.yaml)
+> [See implementation](https://github.com/TeamMoirai/GitHubActions/blob/master/src/TeamMoiraiActions/Commands/ValidateTagCommand.cs)
 
 Validate tag is newer than latest release tag.
 
-**Sample usage**
+Provided by the `validate-tag` subcommand of the `TeamMoiraiActions` CLI and called internally by the [create-release](#create-release) workflow. It is **not** a standalone reusable workflow.
 
-```yaml
-name: "Validate release tag"
+**Command line usage**
 
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      require-validation:
-        description: "require-validation: true require validation must pass, false to keep going even validation failed."
-        required: false
-        type: boolean
-        default: true
-
-jobs:
-  validate:
-    uses: TeamMoirai/GitHubActions/.github/workflows/validate-tag.yaml@main
-    with:
-      tag: ${{ inputs.tag }}
-      require-validation: ${{ inputs.require-validation }} # true = exit 1 if tag is older than current release. false = keep going even failed.
-
-  test:
-    needs: [validate]
-    runs-on: ubuntu-24.04
-    steps:
-      - run: echo "${{ needs.validate.outputs.validated }}" # true or false
-
+```bash
+dotnet run --project ./src/TeamMoiraiActions/TeamMoiraiActions.csproj --no-launch-profile -- validate-tag --tag "1.0.0" --require-validation
 ```
+
+| Argument | Description |
+| ---- | ---- |
+| `--tag` | Git tag to validate. (sample `1.0.0`). A leading `v` is stripped. |
+| `--require-validation` | When omitted the tag is only normalized, not compared. When set, exits 1 if the tag is older than the latest release. |
+
+**Outputs**
+
+| Name | Description |
+| ---- | ---- |
+| `tag` | The tag as supplied. |
+| `normalized-tag` | The tag with any `v` prefix removed. |
+
+Version comparison handles segment-wise numeric ordering (`1.0.9` vs `1.0.10`) and pre-release ordering (`alpha < beta < preview < rc < release`).
 
 # 🎬 Actions
 
-## check-benchmarkable
+## benchmark-runnable
 
-> [See action](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/check-benchmarkable/action.yaml)
+> [See action](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/benchmark-runnable/action.yaml)
 
 Check if GitHub User is allow to run benchmark.
 Mainly used for benchmark CI workflow.
@@ -639,7 +629,7 @@ jobs:
     steps:
       - name: Check actor is benchmarkable
         id: is-benchmarkable
-        uses: TeamMoirai/GitHubActions/.github/actions/check-benchmarkable@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-runnable@master
         with:
           username: ${{ github.actor }}
 
@@ -656,7 +646,7 @@ jobs:
 
 ## check-metas
 
-> [See action](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/check-metas/action.yaml)
+> [See action](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/check-metas/action.yaml)
 
 Check Unity .meta files are not generated.
 Mainly used for Unity CI workflow.
@@ -682,14 +672,14 @@ jobs:
       - name: Unity Build
         run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
       - name: Check all .meta is comitted
-        uses: TeamMoirai/GitHubActions/.github/actions/check-metas@main
+        uses: TeamMoirai/GitHubActions/.github/actions/check-metas@master
         with:
           directory: ./Sandbox/Sandbox.Unity
 ```
 
 ## checkout
 
-> [See action](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/checkout/action.yaml)
+> [See action](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/checkout/action.yaml)
 
 Wrapper of [actions/checkout](https://github.com/actions/checkout/tree/main) to offer centrlral managed checkout by sha pinning.
 
@@ -710,12 +700,12 @@ jobs:
     timeout-minutes: 15
     steps:
       # - uses: actions/checkout@v4
-      - use: TeamMoirai/GitHubActions/.github/actions/checkout@main
+      - use: TeamMoirai/GitHubActions/.github/actions/checkout@master
       # Any actions that create .meta when it was not comitted.
       - name: Unity Build
         run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
       - name: Check all .meta is comitted
-        uses: TeamMoirai/GitHubActions/.github/actions/check-metas@main
+        uses: TeamMoirai/GitHubActions/.github/actions/check-metas@master
         with:
           directory: ./Sandbox/Sandbox.Unity
 ```
@@ -723,7 +713,7 @@ jobs:
 
 ## download-artifact
 
-> [See action](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/download-artifact/action.yaml)
+> [See action](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/download-artifact/action.yaml)
 
 Wrapper of [actions/download-artifact](https://github.com/actions/download-artifact/tree/main) to offer default value and consistent action versioning. Mainly used for Release artifact.
 
@@ -749,7 +739,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@master
         with:
           name: my-artifact
       - name: Display structure of downloaded files
@@ -759,7 +749,7 @@ jobs:
 
 ## setup-dotnet
 
-> [See action](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/setup-dotnet/action.yaml)
+> [See action](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/setup-dotnet/action.yaml)
 
 Wrapper of [actions/setup-dotnet](https://github.com/actions/setup-dotnet) to offer default value and consistent action versioning and Environment variables. Mainly used for .NET CI workflow.
 
@@ -779,12 +769,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
 ```
 
 ## unity-builder
 
-> [See action](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/unity-builder/action.yaml)
+> [See action](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/unity-builder/action.yaml)
 
 Build Unity projects for different platforms.
 
@@ -807,7 +797,7 @@ jobs:
       # execute scripts/Export Package
       # /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -projectPath . -executeMethod PackageExporter.Export
       - name: Build Unity (.unitypacakge)
-        uses: TeamMoirai/GitHubActions/.github/actions/unity-builder@main
+        uses: TeamMoirai/GitHubActions/.github/actions/unity-builder@master
         with:
           projectPath: src/MyProject.Unity
           unityVersion: "2020.3.33f1"
@@ -818,7 +808,7 @@ jobs:
 
 ## upload-artifact
 
-> [See action](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/upload-artifact/action.yaml)
+> [See action](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/upload-artifact/action.yaml)
 
 Wrapper of [actions/upload-artifact](https://github.com/actions/upload-artifact/tree/main) to offer default value and consistent action versioning. Mainly used for Release artifact.
 
@@ -843,7 +833,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: mkdir -p path/to/artifact
       - run: echo hello > path/to/artifact/world.txt
-      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: my-artifact
           path: path/to/artifact/world.txt

@@ -24,13 +24,13 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
         with:
           dotnet-version: 9.0.x
       - name: Set TeamMoirai/GitHubActions binary path
         id: actions-caller
         run: |
-          branch=main
+          branch=master
           if [[ -f "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}//TeamMoiraiActions" ]]; then
             echo path="${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions" | tee -a "$GITHUB_OUTPUT"
             chmod +x "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions"

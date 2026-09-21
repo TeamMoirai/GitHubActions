@@ -2,7 +2,7 @@ name: (R) Prevent github change
 on:
   workflow_call:
   pull_request:
-    branches: ["main"]
+    branches: ["master"]
     paths:
       - ".github/**/*.yaml"
       - ".github/**/*.yml"

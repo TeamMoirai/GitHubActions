@@ -143,13 +143,13 @@ jobs:
         with:
           ref: ${{ inputs.commit-id }}
           persist-credentials: false
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
         with:
           dotnet-version: 9.0.x
       - name: Set TeamMoirai/GitHubActions binary path
         id: actions-caller
         run: |
-          branch=main
+          branch=master
           if [[ -f "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions" ]]; then
             echo path="${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions" | tee -a "$GITHUB_OUTPUT"
             chmod +x "${{ github.workspace }}/../../_actions/TeamMoirai/GitHubActions/${branch}/actions/Linux-${{ runner.arch }}/TeamMoiraiActions"
@@ -170,7 +170,7 @@ jobs:
           TAG: ${{ inputs.tag }}
           REQUIRE_VALIDATION: ${{ inputs.require-validation }}
       # Download(All) Artifacts to current directory
-      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@master
         with:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.download-run-id || github.run_id }}

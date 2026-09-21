@@ -2,7 +2,7 @@ name: Test benchmark-runnable
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["master"]
   issue_comment:
     types: [created]
 

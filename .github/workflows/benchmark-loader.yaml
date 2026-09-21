@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Check actor is benchmarkable
         id: is-benchmarkable
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-runnable@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-runnable@master
         with:
           username: ${{ github.actor }}
       - name: Add request receive reaction
@@ -45,7 +45,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Comment (Running - Auth Result)
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@master
         with:
           comment: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'Benchmark request accepted, creating benchmark environment. :clock1:' || 'Benchmark request rejected, you are not authorized to run benchmark. :warning:'}}
           state: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'running' || 'failed' }}
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
         with:
           dotnet-version: 9.0.x
       - name: Get branch name to checkout
@@ -84,7 +84,7 @@ jobs:
       - name: Set TeamMoirai/GitHubActions binary path
         id: actions-caller
         run: |
-          branch=main
+          branch=master
           if [[ ${{ github.repository }} == "TeamMoirai/GitHubActions" ]]; then
             echo path="dotnet run --project ./src/TeamMoiraiActions/TeamMoiraiActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
             exit

@@ -68,13 +68,13 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
         with:
           dotnet-version: 9.0.x
       - name: Set TeamMoirai/GitHubActions binary path
         id: actions-caller
         run: |
-          branch=main
+          branch=master
           if [[ ${{ github.repository }} == "TeamMoirai/GitHubActions" ]]; then
             echo path="dotnet run --project ./src/TeamMoiraiActions/TeamMoiraiActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
             exit

@@ -2,7 +2,7 @@ name: Test Actions
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["master"]
 
 jobs:
   dotnet:
@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
         with:
           dotnet-version: 9.0.x
       - name: dotnet build
@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
       - run: mkdir -p path/to/artifact
       - run: echo hello > path/to/artifact/world.txt
-      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: my-artifact
           path: path/to/artifact/world.txt
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@master
         with:
           name: my-artifact
       - name: Display structure of downloaded files

@@ -4,7 +4,7 @@
 >
 
 [![actions lint](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_actions-lint.yaml/badge.svg)](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_actions-lint.yaml)
-[![English](https://img.shields.io/badge/README-English-blue)](https://github.com/TeamMoirai/GitHubActions/blob/main/README_EN.md)
+[![English](https://img.shields.io/badge/README-English-blue)](https://github.com/TeamMoirai/GitHubActions/blob/master/README_EN.md)
 
 [![Test benchmark-runnable](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_test-benchmark-runnable.yaml/badge.svg?event=pull_request)](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_test-benchmark-runnable.yaml)
 [![Test check-metas](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_test-check-metas.yaml/badge.svg?event=pull_request)](https://github.com/TeamMoirai/GitHubActions/actions/workflows/_test-check-metas.yaml)
@@ -29,7 +29,7 @@
   - [update-packagejson](#update-packagejson)
   - [validate-tag](#validate-tag)
 - [🎬 复合操作](#-%E5%A4%8D%E5%90%88%E6%93%8D%E4%BD%9C)
-  - [check-benchmarkable](#check-benchmarkable)
+  - [benchmark-runnable](#benchmark-runnable)
   - [check-metas](#check-metas)
   - [checkout](#checkout)
   - [download-artifact](#download-artifact)
@@ -64,7 +64,7 @@
 
 ## clean-packagejson-branch
 
-> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/clean-packagejson-branch.yaml)
+> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/clean-packagejson-branch.yaml)
 
 删除指定的 GitHub 分支。主要用于清理由 [update-packagejson](#update-packagejson) 工作流创建的分支。该操作有以下限制以防止误删：
 
@@ -83,14 +83,14 @@ jobs:
   cleanup:
     permissions:
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@master
     with:
       branch: branch_name_to_delete
 ```
 
 ## create-release
 
-> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/create-release.yaml)
+> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/create-release.yaml)
 
 创建 GitHub Release，上传 NuGet 包和发布资产。主要用于 NuGet 和 Unity 的发布工作流。
 
@@ -121,7 +121,7 @@ on:
 
 jobs:
   create-release:
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ''
       tag: ${{ inputs.tag }}
@@ -150,7 +150,7 @@ on:
 
 jobs:
   create-release:
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ''
       tag: ${{ inputs.tag }}
@@ -180,7 +180,7 @@ on:
 
 jobs:
   create-release:
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ''
       tag: ${{ inputs.tag }}
@@ -220,11 +220,11 @@ jobs:
         working-directory: ./Sandbox
     steps:
       - uses: actions/checkout@v4
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
       - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
-        uses: TeamMoirai/GitHubActions/.github/actionsupload-artifact@main
+        uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: nuget
           path: ./Sandbox/publish
@@ -232,7 +232,7 @@ jobs:
 
   create-release:
     needs: [build-dotnet]
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ''
       tag: ${{ inputs.tag }}
@@ -265,7 +265,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
@@ -284,11 +284,11 @@ jobs:
         working-directory: ./Sandbox
     steps:
       - uses: actions/checkout@v4
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
       - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
-        uses: TeamMoirai/GitHubActions/.github/actionsupload-artifact@main
+        uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: nuget
           path: ./Sandbox/publish
@@ -304,12 +304,12 @@ jobs:
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}
       # 存储产物
-      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: Sandbox.Unity.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
           if-no-files-found: error
-      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: Sandbox.Unity.Plugin.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
@@ -317,7 +317,7 @@ jobs:
 
   create-release:
     needs: [update-packagejson, build-dotnet, build-unity]
-    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/create-release.yaml@master
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ inputs.tag }}
@@ -336,7 +336,7 @@ jobs:
     needs: [update-packagejson]
     permissions:
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@master
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
@@ -344,7 +344,7 @@ jobs:
 
 ## dd-event-post
 
-> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/dd-event-post.yaml)
+> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/dd-event-post.yaml)
 
 发送 Datadog 事件。
 
@@ -368,15 +368,15 @@ on:
 jobs:
   post:
     if: ${{ github.event.pull_request.merged == true }}
-    uses: TeamMoirai/GitHubActions/.github/workflows/dd-event-post.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/dd-event-post.yaml@master
     secrets: inherit
 ```
 
 ## increment-version
 
-> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/increment-version.yaml)
+> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/increment-version.yaml)
 
-使用递增版本号更新指定的版本文件。主要用于[发布后工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/post-release.yaml)。
+使用递增版本号更新指定的版本文件。主要用于[发布后工作流](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/_post-release.yaml)。
 
 **使用示例**
 
@@ -394,7 +394,7 @@ jobs:
     permissions:
       actions: read
       contents: read
-    uses: TeamMoirai/GitHubActions/.github/workflows/increment-version.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/increment-version.yaml@master
     with:
       ref: ${{ github.event.repository.default_branch }}
       tag: ${{ github.ref_name }} # tag 值将在此处。1.2.1
@@ -406,7 +406,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       ref: ${{ github.event.repository.default_branch }}
       file-path: |
@@ -422,7 +422,7 @@ jobs:
 
 ## prevent-github-change
 
-> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/prevent-github-change.yaml)
+> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/prevent-github-change.yaml)
 
 防止 fork 用户修改触发的文件。只有组织贡献者才能修改这些文件。
 
@@ -440,13 +440,13 @@ jobs:
   detect:
     permissions:
       contents: read
-    uses: TeamMoirai/GitHubActions/.github/workflows/prevent-github-change.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/prevent-github-change.yaml@master
 ```
 
 
 ## stale-issue
 
-> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/stale-issue.yaml)
+> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/stale-issue.yaml)
 
 标记过期的 Issue 和 PR。
 主要用于 Issue/PR 管理。
@@ -467,12 +467,12 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/stale-issue.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/stale-issue.yaml@master
 ```
 
 ## update-packagejson
 
-> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/update-packagejson.yaml)
+> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/workflows/update-packagejson.yaml)
 
 使用 tag 版本号更新指定的 `Unity package.json` 和 `Godot plugin.cfg`。主要用于 UPM 和 Godot 插件发布工作流。
 
@@ -491,7 +491,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
       tag: ${{ inputs.tag }}
@@ -507,7 +507,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
       # 可以写多个路径
@@ -540,7 +540,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/update-packagejson.yaml@master
     with:
       # 可以写多个路径
       file-path: |
@@ -565,54 +565,44 @@ jobs:
     needs: [update-packagejson]
     permissions:
       contents: write
-    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@main
+    uses: TeamMoirai/GitHubActions/.github/workflows/clean-packagejson-branch.yaml@master
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
 
 ## validate-tag
 
-> [查看工作流](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/workflows/validate-tag.yaml)
+> [查看实现](https://github.com/TeamMoirai/GitHubActions/blob/master/src/TeamMoiraiActions/Commands/ValidateTagCommand.cs)
 
 验证 tag 是否比最新的 release tag 更新。
 
-**使用示例**
+由 `TeamMoiraiActions` CLI 的 `validate-tag` 子命令提供，在 [create-release](#create-release) 工作流内部调用，**不是**独立的可复用工作流。
 
-```yaml
-name: "Validate release tag"
+**命令行用法**
 
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: 要创建的 git tag（示例 1.0.0）"
-        required: true
-      require-validation:
-        description: "require-validation: true 表示验证必须通过，false 表示即使验证失败也继续执行"
-        required: false
-        type: boolean
-        default: true
-
-jobs:
-  validate:
-    uses: TeamMoirai/GitHubActions/.github/workflows/validate-tag.yaml@main
-    with:
-      tag: ${{ inputs.tag }}
-      require-validation: ${{ inputs.require-validation }} # true = tag 比当前 release 旧则退出 1。false = 即使失败也继续。
-
-  test:
-    needs: [validate]
-    runs-on: ubuntu-24.04
-    steps:
-      - run: echo "${{ needs.validate.outputs.validated }}" # true 或 false
-
+```bash
+dotnet run --project ./src/TeamMoiraiActions/TeamMoiraiActions.csproj --no-launch-profile -- validate-tag --tag "1.0.0" --require-validation
 ```
+
+| 参数 | 说明 |
+| ---- | ---- |
+| `--tag` | 要验证的 git tag（示例 `1.0.0`）。以 `v` 开头时会被剥离。 |
+| `--require-validation` | 省略时只归一化 tag、不做比较；加上后若 tag 比最新 release 旧则以退出码 1 失败。 |
+
+**输出**
+
+| 名称 | 说明 |
+| ---- | ---- |
+| `tag` | 传入的原始 tag。 |
+| `normalized-tag` | 剥离 `v` 前缀后的 tag。 |
+
+版本比较支持 `1.0.9` 与 `1.0.10` 这类按段数值比较，以及 `alpha < beta < preview < rc < 正式版` 的预发布顺序。
 
 # 🎬 复合操作
 
-## check-benchmarkable
+## benchmark-runnable
 
-> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/check-benchmarkable/action.yaml)
+> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/benchmark-runnable/action.yaml)
 
 检查 GitHub 用户是否被允许运行基准测试。
 主要用于基准测试 CI 工作流。
@@ -639,7 +629,7 @@ jobs:
     steps:
       - name: Check actor is benchmarkable
         id: is-benchmarkable
-        uses: TeamMoirai/GitHubActions/.github/actions/check-benchmarkable@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-runnable@master
         with:
           username: ${{ github.actor }}
 
@@ -656,7 +646,7 @@ jobs:
 
 ## check-metas
 
-> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/check-metas/action.yaml)
+> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/check-metas/action.yaml)
 
 检查 Unity 的 .meta 文件是否未被生成。
 主要用于 Unity CI 工作流。
@@ -682,14 +672,14 @@ jobs:
       - name: Unity Build
         run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
       - name: Check all .meta is comitted
-        uses: TeamMoirai/GitHubActions/.github/actions/check-metas@main
+        uses: TeamMoirai/GitHubActions/.github/actions/check-metas@master
         with:
           directory: ./Sandbox/Sandbox.Unity
 ```
 
 ## checkout
 
-> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/checkout/action.yaml)
+> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/checkout/action.yaml)
 
 [actions/checkout](https://github.com/actions/checkout/tree/main) 的封装，通过 SHA 固定提供集中管理的 checkout。
 
@@ -710,12 +700,12 @@ jobs:
     timeout-minutes: 15
     steps:
       # - uses: actions/checkout@v4
-      - use: TeamMoirai/GitHubActions/.github/actions/checkout@main
+      - use: TeamMoirai/GitHubActions/.github/actions/checkout@master
       # 任何在未提交时创建 .meta 的操作
       - name: Unity Build
         run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
       - name: Check all .meta is comitted
-        uses: TeamMoirai/GitHubActions/.github/actions/check-metas@main
+        uses: TeamMoirai/GitHubActions/.github/actions/check-metas@master
         with:
           directory: ./Sandbox/Sandbox.Unity
 ```
@@ -723,7 +713,7 @@ jobs:
 
 ## download-artifact
 
-> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/download-artifact/action.yaml)
+> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/download-artifact/action.yaml)
 
 [actions/download-artifact](https://github.com/actions/download-artifact/tree/main) 的封装，提供默认值和一致的操作版本管理。主要用于发布产物。
 
@@ -749,7 +739,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/download-artifact@master
         with:
           name: my-artifact
       - name: Display structure of downloaded files
@@ -759,7 +749,7 @@ jobs:
 
 ## setup-dotnet
 
-> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/setup-dotnet/action.yaml)
+> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/setup-dotnet/action.yaml)
 
 [actions/setup-dotnet](https://github.com/actions/setup-dotnet) 的封装，提供默认值、一致的操作版本管理和环境变量。主要用于 .NET CI 工作流。
 
@@ -779,12 +769,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
 ```
 
 ## unity-builder
 
-> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/unity-builder/action.yaml)
+> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/unity-builder/action.yaml)
 
 为不同平台构建 Unity 项目。
 
@@ -807,7 +797,7 @@ jobs:
       # 执行 scripts/Export Package
       # /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -projectPath . -executeMethod PackageExporter.Export
       - name: Build Unity (.unitypacakge)
-        uses: TeamMoirai/GitHubActions/.github/actions/unity-builder@main
+        uses: TeamMoirai/GitHubActions/.github/actions/unity-builder@master
         with:
           projectPath: src/MyProject.Unity
           unityVersion: "2020.3.33f1"
@@ -818,7 +808,7 @@ jobs:
 
 ## upload-artifact
 
-> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/main/.github/actions/upload-artifact/action.yaml)
+> [查看操作](https://github.com/TeamMoirai/GitHubActions/blob/master/.github/actions/upload-artifact/action.yaml)
 
 [actions/upload-artifact](https://github.com/actions/upload-artifact/tree/main) 的封装，提供默认值和一致的操作版本管理。主要用于发布产物。
 
@@ -843,7 +833,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: mkdir -p path/to/artifact
       - run: echo hello > path/to/artifact/world.txt
-      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/upload-artifact@master
         with:
           name: my-artifact
           path: path/to/artifact/world.txt

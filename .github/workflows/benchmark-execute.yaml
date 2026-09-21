@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
-      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@main
+      - uses: TeamMoirai/GitHubActions/.github/actions/setup-dotnet@master
         with:
           dotnet-version: 9.0.x
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -66,7 +66,7 @@ jobs:
       - name: Set TeamMoirai/GitHubActions binary path
         id: actions-caller
         run: |
-          branch=main
+          branch=master
           if [[ ${{ github.repository }} == "TeamMoirai/GitHubActions" ]]; then
             echo path="dotnet run --project ./src/TeamMoiraiActions/TeamMoiraiActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
             exit
@@ -89,7 +89,7 @@ jobs:
         env:
           BENCHMARK_CONFIG_PATH: ${{ inputs.benchmark-config-path }}
       - name: Comment (Running - Config loaded)
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@master
         with:
           comment: "Benchmark config successfully loaded and start matrix. :clock1:"
           state: "running"
@@ -172,7 +172,7 @@ jobs:
         working-directory: ./Actions/.github
       - name: Comment (Progess - Benchmark environment)
         if: steps.check-secrets.outputs.available == 'true'
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@master
         with:
           comment: "Benchmark environment creation complete, start preparing server & client. :clock3:"
           state: "running"
@@ -237,7 +237,7 @@ jobs:
         working-directory: ./Actions/.github
       - name: Comment (Progress - Server begin)
         if: steps.check-secrets.outputs.available == 'true'
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@master
         with:
           comment: "Repository successfully prepared, starting server. :clock6:"
           state: "running"
@@ -252,7 +252,7 @@ jobs:
         working-directory: ./Repo/
       - name: Comment (Progress - Benchmark begin)
         if: steps.check-secrets.outputs.available == 'true'
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@master
         with:
           comment: "Server successfully started, starting benchmark. :clock9:"
           state: "running"
@@ -276,7 +276,7 @@ jobs:
         working-directory: ./Repo/
       - name: Comment (Result - Benchmark complete)
         if: steps.check-secrets.outputs.available == 'true'
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@master
         with:
           comment: |
             Successfully complete Benchmark. :rocket:
@@ -293,7 +293,7 @@ jobs:
           update: "true"
       - name: Comment (Result - Benchmark failed)
         if: steps.check-secrets.outputs.available == 'true' && failure()
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@master
         with:
           comment: "Benchmark failed :x:"
           state: "failed"
@@ -301,7 +301,7 @@ jobs:
           update: "true"
       - name: Comment (Result - Benchmark cancelled)
         if: steps.check-secrets.outputs.available == 'true' && cancelled()
-        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@main
+        uses: TeamMoirai/GitHubActions/.github/actions/benchmark-progress-comment@master
         with:
           comment: "Benchmark workflow was cancelled :octocat:"
           state: "cancelled"

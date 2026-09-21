@@ -23,7 +23,7 @@ on:
         required: false
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["master"]
     paths:
       - "README.md"
 
