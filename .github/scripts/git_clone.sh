@@ -9,12 +9,12 @@ Descriptions: git clone over ssh
 Required:
   --repo          string  Repository name to clone
 Options:
-  --branch        string  Branch name to checkout (default: main)
+  --branch        string  Branch name to checkout (default: master)
   --owner         string  Repository owner (default: TeamMoirai)
   --help                  Show this help message
 
 Examples:
-  1. git clone TeamMoirai/Test main branch
+  1. git clone TeamMoirai/Test master branch
     $ ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@4.215.238.2 'bash -s -- --branch benchmark --owner TeamMoirai --repo MagicOnion' < ./scripts/git_clone.sh
     $ echo \$?            # <- use \$? to get the exit code of the remote command'
 EOF
@@ -44,7 +44,7 @@ function title {
 title "Arguments:"
 print "  --owner=${_OWNER:="TeamMoirai"}"
 print "  --repo=${_REPO}"
-print "  --branch=${_BRANCH:="main"}"
+print "  --branch=${_BRANCH:="master"}"
 
 readonly clone_path="$HOME/github/$_REPO"
 title "Constants:"
